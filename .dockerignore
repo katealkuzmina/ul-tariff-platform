@@ -1,0 +1,10 @@
+.git
+.venv
+.superpowers
+__pycache__
+*.pyc
+.pytest_cache
+ml/artifacts
+.env
+*.log
+README.md

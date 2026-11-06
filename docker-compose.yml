@@ -21,5 +21,21 @@ services:
       timeout: 5s
       retries: 12
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    image: ul-tariff-app
+    container_name: ul-app
+    env_file:
+      - .env
+    environment:
+      DB_HOST: db
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/deals_bigdata
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
 volumes:
   pgdata:
