@@ -1,0 +1,24 @@
+[project]
+name = "ul-tariff-platform"
+version = "0.1.0"
+description = "Smart Logistics Data & ML Platform: DWH, ETL and tariff forecasting (take-home)"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=2.1",
+    "SQLAlchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "catboost>=1.2",
+    "scikit-learn>=1.5",
+    "python-dateutil>=2.9",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
