@@ -45,6 +45,12 @@ def cmd_etl(conn, settings: Settings, start: date | None, end: date | None) -> N
 def cmd_mart(conn, settings: Settings) -> None:
     report = build_route_card(conn, settings.as_of)
     log.info("mart.route_card: rows=%d max_month=%s", report.rows, report.max_month)
+    import os
+
+    if os.environ.get("REPLICATE_TO_CH") == "1":
+        from etl.mart_ch import replicate_route_card
+
+        replicate_route_card(conn)
 
 
 def cmd_ml(conn, settings: Settings) -> None:

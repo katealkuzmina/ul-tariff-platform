@@ -37,5 +37,111 @@ services:
         condition: service_healthy
     restart: "no"
 
+  airflow-init:
+    profiles: ["bonus"]
+    build:
+      context: .
+      dockerfile: docker/airflow/Dockerfile
+    image: ul-tariff-airflow
+    container_name: ul-airflow-init
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/deals_bigdata
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@db:5432/airflow
+      AIRFLOW_CONN_POSTGRES_DEFAULT: postgresql://postgres:postgres@db:5432/deals_bigdata
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    command: >
+      bash -c "airflow db migrate
+      && airflow users create --username admin --password admin --firstname Admin --lastname Admin --role Admin --email admin@example.com
+      || true"
+
+  airflow-scheduler:
+    profiles: ["bonus"]
+    build:
+      context: .
+      dockerfile: docker/airflow/Dockerfile
+    image: ul-tariff-airflow
+    container_name: ul-airflow-scheduler
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/deals_bigdata
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@db:5432/airflow
+      AIRFLOW_CONN_POSTGRES_DEFAULT: postgresql://postgres:postgres@db:5432/deals_bigdata
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    command:
+      - airflow
+      - scheduler
+
+  airflow-webserver:
+    profiles: ["bonus"]
+    build:
+      context: .
+      dockerfile: docker/airflow/Dockerfile
+    image: ul-tariff-airflow
+    container_name: ul-airflow-webserver
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/deals_bigdata
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@db:5432/airflow
+      AIRFLOW_CONN_POSTGRES_DEFAULT: postgresql://postgres:postgres@db:5432/deals_bigdata
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    command:
+      - airflow
+      - webserver
+      - --port
+      - "8080"
+
+  clickhouse:
+    profiles: ["bonus"]
+    image: clickhouse/clickhouse-server:24.8
+    container_name: ul-clickhouse
+    environment:
+      CLICKHOUSE_SKIP_USER_SETUP: "1"
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - chdata:/var/lib/clickhouse
+      - ./clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  superset:
+    profiles: ["bonus"]
+    build:
+      context: .
+      dockerfile: docker/superset/Dockerfile
+    image: ul-tariff-superset
+    container_name: ul-superset
+    env_file:
+      - .env
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-ul-tariff-dev-secret-key}
+      SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://postgres:postgres@db:5432/superset
+    ports:
+      - "8088:8088"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./docker/superset/init.sh:/app/init.sh:ro
+      - ./docker/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+    command: bash /app/init.sh
+
 volumes:
   pgdata:
+  chdata:

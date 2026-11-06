@@ -184,6 +184,52 @@ docker compose run --rm app etl --start 2026-10-01 --end 2026-10-26
   Для сделки с несколькими группами кузова скоринг ведётся на канонической
   (минимальной по алфавиту) группе — одна строка на `price_id`.
 
+## Бонус-задачи (★): Airflow, Superset, ClickHouse
+
+Бонусные сервисы не участвуют в базовом сценарии и поднимаются отдельным профилем —
+`docker-compose up` остаётся минимальным и детерминированным:
+
+```bash
+docker compose --profile bonus up -d     # airflow-init/scheduler/webserver, clickhouse, superset
+```
+
+### Apache Airflow (`dags/`)
+
+DAG `tariff_pipeline` (LocalExecutor, мета-БД `airflow` в той же PostgreSQL):
+таски `migrate → etl → mart → train → score`, вызывающие те же функции, что и
+сервис `app` (идемпотентность сохраняется). Расписание отключено (`schedule=None`) —
+запуск вручную из UI (http://localhost:8080, admin/admin) или CLI:
+
+```bash
+docker compose exec airflow-webserver airflow dags trigger tariff_pipeline
+# бэкфилл окна:
+docker compose exec airflow-webserver airflow dags trigger tariff_pipeline \
+  --conf '{"start_date": "2026-10-01", "end_date": "2026-10-26"}'
+```
+
+### Apache Superset
+
+http://localhost:8088 (admin/admin после `docker compose --profile bonus up -d superset`).
+init-скрипт (`docker/superset/init.sh`) создаёт admin и подключение `deals_bigdata`.
+Рекомендуемые дашборды по двум пользовательским сценариям:
+
+1. **Сводный анализ маршрутной сети** — таблица `mart.route_card`: фильтры
+   `month_date`, `body_group`, `weight_category`; колонки коридоров
+   `p25/median/p75_trip`, `median_km`, `mom_pct`, `reliability_level`.
+2. **Карточка маршрута** — помесячная история по паре городов + график
+   «Факт vs Прогноз» из `mart.ml_price_predictions` (`actual_price_rub` vs
+   `predicted_price_rub`, разрез `loading_date`).
+
+### ClickHouse-реплика витрины
+
+Сервис `clickhouse` (http://localhost:8123, БД `mart`, таблица `route_card` на
+`MergeTree ORDER BY (month_date, loading_gc_id, unloading_gc_id, body_group,
+weight_category)`). Репликация идемпотентна (TRUNCATE + батчевый insert):
+
+```bash
+REPLICATE_TO_CH=1 docker compose run --rm app mart
+```
+
 ## Тесты
 
 ```bash
