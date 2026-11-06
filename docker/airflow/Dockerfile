@@ -11,11 +11,13 @@ ENV UV_COMPILE_BYTECODE=1 \
     PYTHONPATH=/opt/airflow
 
 # Airflow ставим отдельным окружением поверх python 3.12
+# Airflow 3.x + SQLAlchemy 2 (код etl/ml использует SA 2 API: Connection.commit() и т.д.)
 RUN uv venv /opt/airflow/venv \
     && uv pip install --python /opt/airflow/venv/bin/python \
-        "apache-airflow[postgres]==2.10.5" \
+        "apache-airflow[postgres]>=3.0,<4" \
         "apache-airflow-providers-postgres" \
-        "psycopg[binary]" "pandas" "numpy" "SQLAlchemy" "scikit-learn" "catboost" "python-dateutil"
+        "SQLAlchemy>=2.0,<2.1" \
+        "psycopg[binary]" "pandas" "numpy" "scikit-learn" "catboost" "python-dateutil"
 
 COPY dags/ /opt/airflow/dags/
 COPY etl/ /opt/airflow/etl/
