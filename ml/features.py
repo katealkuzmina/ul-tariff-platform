@@ -105,7 +105,7 @@ def add_cyclical(df: pd.DataFrame) -> pd.DataFrame:
     dates = pd.to_datetime(out["loading_date"])
     out["year"] = dates.dt.year.astype("int64")
     out["month"] = dates.dt.month.astype("int64")
-    out["dayofweek"] = dates.dt.dayofweek.astype("int64")
+    out["dayofweek"] = dates.dt.day_of_week.astype("int64")
     out["dayofyear"] = dates.dt.day_of_year.astype("int64")
     out["month_sin"] = np.sin(2 * np.pi * out["month"] / 12)
     out["month_cos"] = np.cos(2 * np.pi * out["month"] / 12)
@@ -121,12 +121,13 @@ def load_dataset(conn: Connection) -> pd.DataFrame:
     df = pd.read_sql(text(DATASET_SQL), conn)
     if conn.in_transaction():
         conn.commit()
+    df["loading_date"] = pd.to_datetime(df["loading_date"])
     return add_cyclical(df)
 
 
 def build_xy(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
     X = df[FEATURE_COLUMNS].copy()
-    y = df[TARGET].copy()
+    y = df[TARGET].astype(float)
     meta = df[["price_id", "loading_date", "outlier_mark"]].copy()
     leakage = FORBIDDEN & set(X.columns)
     if leakage:
