@@ -31,9 +31,9 @@ def test_time_split_boundaries(conn):
     assert test_df.loading_date.max() <= pd.Timestamp("2026-10-26")
     assert not train_df.outlier_mark.any()
     assert len(train_df) > 0 and len(test_df) > 0
-    # границы вычисляются от as_of, а не от системной даты
+    # границы вычисляются от as_of, а не от системной даты: train = [as_of-3mo, as_of-3wk)
     assert train_df.loading_date.min() >= pd.Timestamp(as_of - relativedelta(months=3))
-    assert train_df.loading_date.max() >= pd.Timestamp(as_of - relativedelta(months=3) - timedelta(days=1))
+    assert train_df.loading_date.max() < pd.Timestamp(as_of - timedelta(weeks=3))
 
 
 def test_catboost_deterministic(conn):

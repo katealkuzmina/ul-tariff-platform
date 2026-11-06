@@ -14,8 +14,7 @@ import os
 from datetime import date, datetime, timedelta
 
 from airflow import DAG
-from airflow.operators.python import PythonOperator
-from dateutil.relativedelta import relativedelta
+from airflow.providers.standard.operators.python import PythonOperator
 
 DEFAULT_ARGS = {
     "owner": "data-engineering",
@@ -88,10 +87,6 @@ def task_score() -> None:
     with _connect() as conn:
         n = run_scoring(conn, CATBOOST_MODEL_NAME, _settings().as_of)
     print(f"scored rows: {n}")
-
-
-def default_start() -> str:
-    return (date(2026, 10, 26) - relativedelta(years=3)).isoformat()
 
 
 with DAG(

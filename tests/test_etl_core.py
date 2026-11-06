@@ -115,3 +115,40 @@ def test_dim_cities_dedup_and_body_groups(conn):
         )
     ).scalar()
     assert null_link > 0
+
+
+def test_body_group_null_body_type_maps_to_ne_ukazan(conn):
+    """Regression: NULL body_type (нет ссылок ни в price_body_types, ни в prices.body_type)
+    обязан маппиться в 'Не указан', а не проваливаться в ELSE 'Прочие'
+    (простой `CASE expr WHEN NULL` никогда не срабатывает — expr = NULL не бывает true)."""
+    from etl.pipeline import run_etl
+
+    pid = 987650001
+    lgc, ugc = conn.execute(
+        text("SELECT min(gc_id), max(gc_id) FROM public.cities")
+    ).one()
+    conn.execute(text("DELETE FROM public.prices WHERE id = :pid"), {"pid": pid})
+    conn.execute(
+        text(
+            """
+            INSERT INTO public.prices (id, loading_date, loading_city_gcid, unloading_city_gcid,
+                distance, total_weight, total_volume, body_type, price, currency_code,
+                complex, price_type, is_fact)
+            VALUES (:pid, '2026-09-15', :lgc, :ugc, 1000, 15000, 60, NULL, 50000,
+                '643', false, 2, true)
+            """
+        ),
+        {"pid": pid, "lgc": lgc, "ugc": ugc},
+    )
+    conn.commit()
+    try:
+        run_etl(conn, date(2026, 9, 1), date(2026, 9, 30))
+        group = conn.execute(
+            text("SELECT body_group FROM core.price_body_groups WHERE price_id = :pid"),
+            {"pid": pid},
+        ).scalar()
+        assert group == "Не указан"
+    finally:
+        conn.execute(text("DELETE FROM public.prices WHERE id = :pid"), {"pid": pid})
+        conn.commit()
+        run_etl(conn, date(2026, 9, 1), date(2026, 9, 30))

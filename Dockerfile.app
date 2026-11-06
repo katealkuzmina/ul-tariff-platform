@@ -14,7 +14,6 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project
 
 COPY . .
-RUN uv sync --frozen --no-install-project
 
 RUN chmod +x docker/app/entrypoint.sh
 

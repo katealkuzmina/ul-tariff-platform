@@ -14,7 +14,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 # Airflow 3.x + SQLAlchemy 2 (код etl/ml использует SA 2 API: Connection.commit() и т.д.)
 RUN uv venv /opt/airflow/venv \
     && uv pip install --python /opt/airflow/venv/bin/python \
-        "apache-airflow[postgres]>=3.0,<4" \
+        "apache-airflow[postgres]==3.4.0" \
         "apache-airflow-providers-postgres" \
         "SQLAlchemy>=2.0,<2.1" \
         "psycopg[binary]" "pandas" "numpy" "scikit-learn" "catboost" "python-dateutil"
@@ -31,4 +31,4 @@ ENV PATH="/opt/airflow/venv/bin:$PATH" \
     AIRFLOW__CORE__LOAD_EXAMPLES=False \
     AIRFLOW__CORE__EXECUTOR=LocalExecutor
 
-CMD ["airflow", "webserver", "--port", "8080"]
+CMD ["airflow", "api-server", "--host", "0.0.0.0", "--port", "8080"]

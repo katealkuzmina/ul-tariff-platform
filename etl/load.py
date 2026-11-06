@@ -181,12 +181,12 @@ def refresh_body_groups(conn: Connection) -> int:
                 """
                 INSERT INTO core.price_body_groups (price_id, body_group)
                 SELECT DISTINCT p.id,
-                    CASE COALESCE(bt.std_id, fb.std_id)
-                        WHEN 56 THEN 'Тент'
-                        WHEN 4  THEN 'Рефрижератор'
-                        WHEN 2  THEN 'Изотерм'
-                        WHEN 15 THEN 'Борт'
-                        WHEN NULL THEN 'Не указан'
+                    CASE
+                        WHEN COALESCE(bt.std_id, fb.std_id) IS NULL THEN 'Не указан'
+                        WHEN COALESCE(bt.std_id, fb.std_id) = 56 THEN 'Тент'
+                        WHEN COALESCE(bt.std_id, fb.std_id) = 4  THEN 'Рефрижератор'
+                        WHEN COALESCE(bt.std_id, fb.std_id) = 2  THEN 'Изотерм'
+                        WHEN COALESCE(bt.std_id, fb.std_id) = 15 THEN 'Борт'
                         ELSE 'Прочие'
                     END
                 FROM public.prices p
