@@ -1,0 +1,18 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Env / secrets
+.env
+
+# Data & artifacts
+ml/artifacts/
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
